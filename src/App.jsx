@@ -57,8 +57,18 @@ function LoadingSkeleton() {
 }
 
 export default function App() {
-  const { topQuake, recentQuakes, loading, error, lastUpdated, countdown, refresh } =
-    useEarthquakeData();
+  const {
+    topQuake,
+    recentQuakes,
+    loading,
+    error,
+    lastUpdated,
+    countdown,
+    refresh,
+    isOffline,
+    isFromCache,
+    cacheTime,
+  } = useEarthquakeData();
 
   const [testQuake, setTestQuake] = useState(null);
   const isTestActive = testQuake !== null;
@@ -90,10 +100,21 @@ export default function App() {
               <p className="text-slate-500 text-xs">বাংলাদেশ · ৫০০ কিমি রেডিয়াস</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 bg-green-950/60 border border-green-800/50 rounded-full px-3 py-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-green-400 text-xs font-semibold">
-              {isTestActive ? "🧪 টেস্ট" : "লাইভ"}
+          <div className={
+            "flex items-center gap-1.5 rounded-full px-3 py-1 border " +
+            (isOffline
+              ? "bg-amber-950/60 border-amber-700/50"
+              : "bg-green-950/60 border-green-800/50")
+          }>
+            <div className={
+              "w-1.5 h-1.5 rounded-full animate-pulse " +
+              (isOffline ? "bg-amber-400" : "bg-green-400")
+            } />
+            <span className={
+              "text-xs font-semibold " +
+              (isOffline ? "text-amber-400" : "text-green-400")
+            }>
+              {isTestActive ? "🧪 টেস্ট" : isOffline ? "অফলাইন" : "লাইভ"}
             </span>
           </div>
         </div>
@@ -121,7 +142,12 @@ export default function App() {
 
         {!loading && !error && (
           <>
-            <OfflineBanner isOffline={isOffline} isFromCache={isFromCache} cacheTime={cacheTime} />
+            <OfflineBanner
+              isOffline={isOffline}
+              isFromCache={isFromCache}
+              cacheTime={cacheTime}
+            />
+
             <AlertBanner topQuake={displayQuake} />
 
             <div className="mx-4 mt-6">
