@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useEarthquakeData } from "./hooks/useEarthquakeData";
 import AlertBanner from "./components/AlertBanner";
 import EarthquakeList from "./components/EarthquakeList";
@@ -7,10 +7,12 @@ import StatusBar from "./components/StatusBar";
 import TestPanel from "./components/TestPanel";
 import OfflineBanner from "./components/OfflineBanner";
 import LocationBanner from "./components/LocationBanner";
+import OnboardingScreen from "./components/OnboardingScreen";
+import AboutPanel from "./components/AboutPanel";
 import { useLocation } from "./hooks/useLocation";
 
-
 const IS_DEV = import.meta.env.DEV;
+const ONBOARDING_KEY = "earthquake_onboarding_done";
 
 function makeTestQuake(magnitude) {
   return {
@@ -74,7 +76,13 @@ export default function App() {
   } = useEarthquakeData();
 
   const { userLocation, locationError, locationStatus } = useLocation();
+
   const [testQuake, setTestQuake] = useState(null);
+  const [showAbout, setShowAbout] = useState(false);
+  const [onboardingDone, setOnboardingDone] = useState(
+    () => localStorage.getItem(ONBOARDING_KEY) === "true"
+  );
+
   const isTestActive = testQuake !== null;
   const displayQuake = isTestActive ? testQuake : topQuake;
 
@@ -84,6 +92,16 @@ export default function App() {
 
   function handleReset() {
     setTestQuake(null);
+  }
+
+  function handleOnboardingDone() {
+    localStorage.setItem(ONBOARDING_KEY, "true");
+    setOnboardingDone(true);
+  }
+
+  // Show onboarding if not done yet
+  if (!onboardingDone) {
+    return <OnboardingScreen onDone={handleOnboardingDone} />;
   }
 
   return (
@@ -104,24 +122,37 @@ export default function App() {
               <p className="text-slate-500 text-xs">বাংলাদেশ · ৫০০ কিমি রেডিয়াস</p>
             </div>
           </div>
-          <div className={
-            "flex items-center gap-1.5 rounded-full px-3 py-1 border " +
-            (isOffline
-              ? "bg-amber-950/60 border-amber-700/50"
-              : "bg-green-950/60 border-green-800/50")
-          }>
+
+          <div className="flex items-center gap-2">
+            {/* About button */}
+            <button
+              onClick={() => setShowAbout(true)}
+              className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/50 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors text-sm font-bold"
+            >
+              i
+            </button>
+
+            {/* Live/Offline badge */}
             <div className={
-              "w-1.5 h-1.5 rounded-full animate-pulse " +
-              (isOffline ? "bg-amber-400" : "bg-green-400")
-            } />
-            <span className={
-              "text-xs font-semibold " +
-              (isOffline ? "text-amber-400" : "text-green-400")
+              "flex items-center gap-1.5 rounded-full px-3 py-1 border " +
+              (isOffline
+                ? "bg-amber-950/60 border-amber-700/50"
+                : "bg-green-950/60 border-green-800/50")
             }>
-              {isTestActive ? "🧪 টেস্ট" : isOffline ? "অফলাইন" : "লাইভ"}
-            </span>
+              <div className={
+                "w-1.5 h-1.5 rounded-full animate-pulse " +
+                (isOffline ? "bg-amber-400" : "bg-green-400")
+              } />
+              <span className={
+                "text-xs font-semibold " +
+                (isOffline ? "text-amber-400" : "text-green-400")
+              }>
+                {isTestActive ? "🧪 টেস্ট" : isOffline ? "অফলাইন" : "লাইভ"}
+              </span>
+            </div>
           </div>
         </div>
+
         {lastUpdated && (
           <StatusBar lastUpdated={lastUpdated} countdown={countdown} onRefresh={refresh} />
         )}
@@ -151,7 +182,6 @@ export default function App() {
               isFromCache={isFromCache}
               cacheTime={cacheTime}
             />
-
             <LocationBanner
               locationStatus={locationStatus}
               locationError={locationError}
@@ -204,6 +234,11 @@ export default function App() {
           </>
         )}
       </main>
+
+      <AboutPanel
+        isOpen={showAbout}
+        onClose={() => setShowAbout(false)}
+      />
     </div>
   );
 }
