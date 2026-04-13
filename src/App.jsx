@@ -6,6 +6,9 @@ import SafetyTips from "./components/SafetyTips";
 import StatusBar from "./components/StatusBar";
 import TestPanel from "./components/TestPanel";
 import OfflineBanner from "./components/OfflineBanner";
+import LocationBanner from "./components/LocationBanner";
+import { useLocation } from "./hooks/useLocation";
+
 
 const IS_DEV = import.meta.env.DEV;
 
@@ -70,6 +73,7 @@ export default function App() {
     cacheTime,
   } = useEarthquakeData();
 
+  const { userLocation, locationError, locationStatus } = useLocation();
   const [testQuake, setTestQuake] = useState(null);
   const isTestActive = testQuake !== null;
   const displayQuake = isTestActive ? testQuake : topQuake;
@@ -148,7 +152,14 @@ export default function App() {
               cacheTime={cacheTime}
             />
 
-            <AlertBanner topQuake={displayQuake} />
+            <LocationBanner
+              locationStatus={locationStatus}
+              locationError={locationError}
+            />
+            <AlertBanner
+              topQuake={displayQuake}
+              userLocation={userLocation}
+            />
 
             <div className="mx-4 mt-6">
               <SafetyTips magnitude={displayQuake ? displayQuake.magnitude : null} />

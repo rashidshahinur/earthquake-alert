@@ -1,5 +1,6 @@
 import { getAlertInfo, getDepthLabel } from "../utils/banglaMessages";
 import { formatMagnitude, formatDistance, timeAgoInBangla } from "../utils/formatters";
+import { getDistanceKm } from "../utils/distance";
 
 const GLOW = {
   green:  "shadow-[0_0_32px_rgba(34,197,94,0.15)]",
@@ -8,7 +9,7 @@ const GLOW = {
   red:    "shadow-[0_0_32px_rgba(239,68,68,0.2)]",
 };
 
-export default function AlertBanner({ topQuake }) {
+export default function AlertBanner({ topQuake, userLocation }) {
   if (!topQuake) {
     return (
       <div className="mx-4 mt-4 rounded-2xl border border-green-800/60 bg-gradient-to-br from-green-950/80 to-slate-900/80 p-6 text-center fade-in-up">
@@ -28,6 +29,11 @@ export default function AlertBanner({ topQuake }) {
   const isPulsing = topQuake.magnitude >= 5.0;
   const glow = GLOW[info.color] || GLOW.green;
 
+  // Calculate user distance if location available
+  const userDistance = userLocation
+    ? getDistanceKm(userLocation.lat, userLocation.lon, topQuake.lat, topQuake.lon)
+    : null;
+
   return (
     <div className={"mx-4 mt-4 rounded-2xl border " + info.borderClass + " bg-gradient-to-br " + info.bgClass + "/30 p-5 " + glow + " fade-in-up " + (isPulsing ? "alert-pulse" : "")}>
       <div className="flex items-start gap-4 mb-5">
@@ -44,16 +50,40 @@ export default function AlertBanner({ topQuake }) {
               {info.level}
             </span>
           </div>
-          <h2 className="text-white text-xl font-extrabold leading-snug mb-1">{info.headline}</h2>
+          <h2 className="text-white text-xl font-extrabold leading-snug mb-1">
+            {info.headline}
+          </h2>
           <p className="text-slate-400 text-sm">{info.message}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mb-4">
-        <StatBox label="ঢাকা থেকে" value={formatDistance(topQuake.distanceFromDhaka)} />
-        <StatBox label="গভীরতা" value={Math.round(topQuake.depth) + " কিমি"} highlight={depth.warning} />
-        <StatBox label="কতক্ষণ আগে" value={timeAgoInBangla(topQuake.time)} />
+        {/* Show user distance if available, else Dhaka distance */}
+        <StatBox
+          label={userLocation ? "আপনার থেকে" : "ঢাকা থেকে"}
+          value={formatDistance(userLocation ? userDistance : topQuake.distanceFromDhaka)}
+          highlight={false}
+        />
+        <StatBox
+          label="গভীরতা"
+          value={Math.round(topQuake.depth) + " কিমি"}
+          highlight={depth.warning}
+        />
+        <StatBox
+          label="কতক্ষণ আগে"
+          value={timeAgoInBangla(topQuake.time)}
+          highlight={false}
+        />
       </div>
+
+      {/* Show both distances if user location available */}
+      {userLocation && (
+        <div className="mb-3 text-center">
+          <span className="text-slate-600 text-xs">
+            ঢাকা থেকে {formatDistance(topQuake.distanceFromDhaka)}
+          </span>
+        </div>
+      )}
 
       <div className={"rounded-xl border " + info.borderClass + "/40 bg-black/30 p-3"}>
         <p className="text-white font-semibold text-sm">
@@ -62,7 +92,9 @@ export default function AlertBanner({ topQuake }) {
       </div>
 
       {topQuake.place && (
-        <p className="text-slate-600 text-xs mt-3 text-center truncate">{topQuake.place}</p>
+        <p className="text-slate-600 text-xs mt-3 text-center truncate">
+          {topQuake.place}
+        </p>
       )}
     </div>
   );
