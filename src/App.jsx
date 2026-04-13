@@ -5,6 +5,7 @@ import EarthquakeList from "./components/EarthquakeList";
 import SafetyTips from "./components/SafetyTips";
 import StatusBar from "./components/StatusBar";
 import TestPanel from "./components/TestPanel";
+import OfflineBanner from "./components/OfflineBanner";
 
 const IS_DEV = import.meta.env.DEV;
 
@@ -120,6 +121,7 @@ export default function App() {
 
         {!loading && !error && (
           <>
+            <OfflineBanner isOffline={isOffline} isFromCache={isFromCache} cacheTime={cacheTime} />
             <AlertBanner topQuake={displayQuake} />
 
             <div className="mx-4 mt-6">
