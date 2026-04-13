@@ -7,7 +7,25 @@ const HOUR_URL =
 const DAY_URL =
   'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
 
-const REFRESH_INTERVAL = 60000; // 60 seconds
+const REFRESH_INTERVAL = 60000;
+
+async function sendTelegramAlert(quake) {
+  try {
+    await fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        magnitude: quake.magnitude,
+        place: quake.place,
+        distance: quake.distanceFromDhaka,
+        depth: quake.depth,
+        time: quake.time,
+      }),
+    });
+  } catch (err) {
+    console.error('Alert failed:', err);
+  }
+}
 
 function parseFeature(feature) {
   const { properties, geometry } = feature;
@@ -37,8 +55,8 @@ function parseFeature(feature) {
 }
 
 export function useEarthquakeData() {
-  const [nearbyQuakes, setNearbyQuakes] = useState([]);   // Last hour, within radius
-  const [recentQuakes, setRecentQuakes] = useState([]);   // Last 24h, within radius
+  const [nearbyQuakes, setNearbyQuakes] = useState([]);
+  const [recentQuakes, setRecentQuakes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -63,6 +81,16 @@ export function useEarthquakeData() {
         .filter((q) => q.distanceFromDhaka <= ALERT_RADIUS_KM)
         .sort((a, b) => b.time - a.time);
 
+      // Send Telegram alert if new significant quake found
+      if (nearby.length > 0 && nearby[0].magnitude >= 4.0) {
+        const topQuake = nearby[0];
+        const lastAlertedId = sessionStorage.getItem('lastAlertedQuakeId');
+        if (lastAlertedId !== topQuake.id) {
+          sessionStorage.setItem('lastAlertedQuakeId', topQuake.id);
+          sendTelegramAlert(topQuake);
+        }
+      }
+
       setNearbyQuakes(nearby);
       setRecentQuakes(recent);
       setLastUpdated(new Date());
@@ -74,18 +102,15 @@ export function useEarthquakeData() {
     }
   }, []);
 
-  // Initial fetch
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Auto-refresh every 60s
   useEffect(() => {
     const interval = setInterval(fetchData, REFRESH_INTERVAL);
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // Countdown timer (visual only)
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown((prev) => (prev <= 1 ? 60 : prev - 1));
@@ -93,7 +118,6 @@ export function useEarthquakeData() {
     return () => clearInterval(timer);
   }, [lastUpdated]);
 
-  // The most significant recent quake (for the main alert banner)
   const topQuake = nearbyQuakes.length > 0 ? nearbyQuakes[0] : null;
 
   return {
